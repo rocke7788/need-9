@@ -128,6 +128,12 @@ app.get('/verify-reward', async (req, res) => {
       console.warn('收到非HTTPS回调请求');
     }
 
+    // 兼容 AdMob 控制台的“验证 URL”测试：该测试不会附带签名
+    const { key_id, signature } = req.query || {};
+    if (!key_id || !signature) {
+      return res.status(200).send('OK');
+    }
+
     const valid = await verifySSVWithAdMobKeys(req);
     if (valid) {
       // 可在此处执行奖励发放逻辑（例如记录transaction_id）
@@ -139,6 +145,11 @@ app.get('/verify-reward', async (req, res) => {
     console.error('处理SSV请求时出错:', error);
     res.status(500).send('Internal Server Error');
   }
+});
+
+// 支持 HEAD 请求以通过某些健康检查/验证方式
+app.head('/verify-reward', (req, res) => {
+  res.status(200).end();
 });
 
 // 备用端点
