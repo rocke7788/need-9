@@ -78,7 +78,18 @@ async function getPublicKeyPemByKeyId(keyId) {
   const matched = keysCache.keys.find(
     (k) => String(k.keyId || k.key_id) === String(keyId)
   );
-  return matched ? matched.pem : null;
+  if (matched) return matched.pem;
+  // 若缓存中没有匹配的key，强制刷新一次后重试（处理新key_id）
+  try {
+    const freshKeys = await fetchAdMobKeys();
+    keysCache = { keys: freshKeys, fetchedAt: Date.now() };
+    const matchedFresh = freshKeys.find(
+      (k) => String(k.keyId || k.key_id) === String(keyId)
+    );
+    return matchedFresh ? matchedFresh.pem : null;
+  } catch (_) {
+    return null;
+  }
 }
 
 function toBase64(signatureUrlSafe) {
